@@ -1,65 +1,159 @@
-import Image from "next/image";
+"use client"
+
+import { useState } from "react"
+import ChatInput from "@/components/ChatInput"
+import ChatMessage from "@/components/ChatMessages"
+import Loader from "@/components/Loader"
+import { askQuestion } from "@/lib/api"
+import { Message } from "@/types/chat"
 
 export default function Home() {
+  const [messages, setMessages] = useState<Message[]>([])
+  const [loading, setLoading] = useState(false)
+
+  const suggestedQuestions = [
+    "What is acne?",
+    "What are rashes?",
+    "What is rosacea?"
+  ]
+
+  async function handleSend(question: string) {
+    console.log("[ui] handleSend", question)
+    setMessages(prev => [
+      ...prev,
+      { role: "user", content: question }
+    ])
+
+    setLoading(true)
+
+    try {
+      const res = await askQuestion(question)
+      console.log("[ui] got response", res)
+
+      setMessages(prev => [
+        ...prev,
+        {
+          role: "assistant",
+          content: res.answer,
+          sources: res.sources
+        }
+      ])
+    } catch (err) {
+      console.error("[ui] request failed", err)
+      setMessages(prev => [
+        ...prev,
+        {
+          role: "assistant",
+          content: "Something went wrong. Please try again."
+        }
+      ])
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="h-screen flex flex-col bg-gradient-to-br from-blue-50 via-indigo-50/40 to-purple-50">
+      {/* Header */}
+      <header className="flex-shrink-0 bg-white/90 backdrop-blur-md border-b border-gray-200 shadow-sm">
+        <div className="px-6 py-4 flex items-center gap-3">
+          <div className="flex items-center justify-center w-11 h-11 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 shadow-md">
+            <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+            </svg>
+          </div>
+          <div>
+            <h1 className="text-lg font-semibold text-gray-900">
+              Medical Knowledge Assistant
+            </h1>
+            <p className="text-xs text-gray-500">Powered by Pinecone RAG</p>
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+      </header>
+
+      {/* Scrollable Content Area */}
+      <div className="flex-1 overflow-y-auto">
+        {/* Welcome Section */}
+        {messages.length === 0 && (
+          <div className="flex items-center justify-center min-h-full p-6">
+            <div className="max-w-2xl w-full space-y-8">
+              <div className="text-center space-y-4">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-3xl bg-gradient-to-br from-blue-600 to-indigo-600 shadow-xl shadow-blue-500/25 mb-4">
+                  <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                  </svg>
+                </div>
+                <h2 className="text-3xl font-bold text-gray-900">
+                  Ask about medical conditions
+                </h2>
+                <p className="text-gray-600 text-base max-w-md mx-auto">
+                  Get evidence-based information from our comprehensive medical knowledge base
+                </p>
+              </div>
+
+              {/* Suggested Questions */}
+              <div className="space-y-3">
+                <p className="text-sm font-medium text-gray-700">Try asking:</p>
+                <div className="space-y-2.5">
+                  {suggestedQuestions.map((q) => (
+                    <button
+                      key={q}
+                      onClick={() => handleSend(q)}
+                      className="w-full group bg-white hover:bg-blue-50 border border-gray-200 hover:border-blue-300 rounded-xl px-5 py-3.5 text-left transition-all duration-200 hover:shadow-md"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="flex-shrink-0 w-9 h-9 rounded-lg bg-blue-100 flex items-center justify-center">
+                          <svg className="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        </div>
+                        <span className="text-gray-700 font-medium flex-1">
+                          {q}
+                        </span>
+                        <svg className="w-5 h-5 text-gray-400 group-hover:text-blue-500 group-hover:translate-x-0.5 transition-all" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                        </svg>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Info Card */}
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+                <div className="flex gap-3">
+                  <div className="flex-shrink-0">
+                    <svg className="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <div className="text-sm text-amber-900">
+                    <p className="font-medium mb-1">Medical Information Disclaimer</p>
+                    <p className="text-amber-800 leading-relaxed">This chatbot provides educational information only. Always consult with a qualified healthcare professional for medical advice, diagnosis, or treatment.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Chat Messages */}
+        {messages.length > 0 && (
+          <div className="px-4 py-6">
+            <div className="max-w-3xl mx-auto space-y-6">
+              {messages.map((m, i) => (
+                <ChatMessage key={i} message={m} />
+              ))}
+              {loading && <Loader />}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Chat Input - Fixed at Bottom */}
+      <div className="flex-shrink-0 bg-white/90 backdrop-blur-md border-t border-gray-200">
+        <ChatInput onSend={handleSend} />
+      </div>
     </div>
-  );
+  )
 }
