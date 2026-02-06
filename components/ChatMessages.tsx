@@ -1,4 +1,5 @@
 import { Message } from "@/types/chat"
+import SourcesPanel from "@/components/SourcesPanel"
 
 export default function ChatMessage({ message }: { message: Message }) {
     const isUser = message.role === "user"
@@ -25,6 +26,15 @@ export default function ChatMessage({ message }: { message: Message }) {
                     <div className="prose prose-sm max-w-none">
                         {message.content}
                     </div>
+
+                    {!isUser && message.sourceQuestion && (
+                        <details className="mt-3">
+                            <summary className="cursor-pointer text-sm text-blue-600">
+                                View sources
+                            </summary>
+                            <SourcesPanel source={message.sourceQuestion} />
+                        </details>
+                    )}
                     
                     <div className={`
                         absolute -bottom-5 text-xs opacity-0 group-hover:opacity-100 transition-opacity

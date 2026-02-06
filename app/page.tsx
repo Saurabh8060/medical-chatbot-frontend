@@ -19,6 +19,7 @@ export default function Home() {
 
   async function handleSend(question: string) {
     console.log("[ui] handleSend", question)
+    const lastUser = [...messages].reverse().find(m => m.role === "user")?.content
     setMessages(prev => [
       ...prev,
       { role: "user", content: question }
@@ -27,15 +28,18 @@ export default function Home() {
     setLoading(true)
 
     try {
-      const res = await askQuestion(question)
+      const res = await askQuestion(question, lastUser)
       console.log("[ui] got response", res)
 
+      const safeFallback = "I don't know based on the available medical data."
+      const content =
+        res.answer?.trim() === safeFallback ? safeFallback : res.answer
       setMessages(prev => [
         ...prev,
         {
           role: "assistant",
-          content: res.answer,
-          sources: res.sources
+          content: content || safeFallback,
+          sourceQuestion: res.source_question
         }
       ])
     } catch (err) {
@@ -66,8 +70,11 @@ export default function Home() {
             <h1 className="text-lg font-semibold text-gray-900">
               Medical Knowledge Assistant
             </h1>
-            <p className="text-xs text-gray-500">Powered by Pinecone RAG</p>
+            <p className="text-xs text-gray-500">Powered by MedQuAD RAG (FAISS)</p>
           </div>
+        </div>
+        <div className="px-6 pb-3 text-xs text-amber-700">
+          ⚠️ This chatbot is for informational purposes only and is not a substitute for professional medical advice.
         </div>
       </header>
 
@@ -119,20 +126,7 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Info Card */}
-              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
-                <div className="flex gap-3">
-                  <div className="flex-shrink-0">
-                    <svg className="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </div>
-                  <div className="text-sm text-amber-900">
-                    <p className="font-medium mb-1">Medical Information Disclaimer</p>
-                    <p className="text-amber-800 leading-relaxed">This chatbot provides educational information only. Always consult with a qualified healthcare professional for medical advice, diagnosis, or treatment.</p>
-                  </div>
-                </div>
-              </div>
+              {/* Disclaimer moved to header for persistent display */}
             </div>
           </div>
         )}

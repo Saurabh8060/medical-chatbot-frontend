@@ -1,15 +1,15 @@
-export type Source = {
-    text: string
-    source?: string
-}
-
 export type ChatResponse = {
     answer: string
-    sources: Source[]
+    source_question: string | null
+    matches?: Array<{
+        score: number
+        question: string
+        answer: string
+    }>
 }
 
 export type Message = {
     role: "user" | "assistant"
     content: string
-    sources?:Source[]
+    sourceQuestion?: string | null
 }

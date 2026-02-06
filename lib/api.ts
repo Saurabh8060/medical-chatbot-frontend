@@ -1,7 +1,8 @@
-import { ChatResponse, Source } from "@/types/chat";
+import { ChatResponse } from "@/types/chat";
 
 export async function askQuestion(
-    question:string
+    question:string,
+    lastTopic?: string
 ): Promise<ChatResponse> {
     const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
     const controller = new AbortController();
@@ -11,7 +12,7 @@ export async function askQuestion(
     const res = await fetch(`${baseUrl.replace(/\/$/, "")}/chat`, {
         method: "POST",
         headers: {"Content-Type": "application/json"}, 
-        body: JSON.stringify({ question, message: question }),
+        body: JSON.stringify({ question, message: question, last_topic: lastTopic, debug: true }),
         signal: controller.signal
     })
     clearTimeout(timeoutId);
@@ -23,68 +24,12 @@ export async function askQuestion(
 
     const data = await res.json();
     console.log("[api] Response payload", data);
+    if (data?.matches) {
+        console.log("[api] Vector matches", data.matches);
+    }
     return {
         answer: data.answer ?? data.response ?? "",
-        sources: normalizeSources(data.sources)
+        source_question: data.source_question ?? null,
+        matches: data.matches ?? undefined
     };
-}
-
-export async function ingestText(text: string): Promise<{ status: string; message?: string; chunks_added?: number }> {
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 120000);
-
-    const res = await fetch(`${baseUrl.replace(/\/$/, "")}/ingest`, {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({ text, replace: false }),
-        signal: controller.signal
-    });
-    clearTimeout(timeoutId);
-
-    if (!res.ok) {
-        throw new Error(`Ingest failed (${res.status})`);
-    }
-
-    return res.json();
-}
-
-export async function resetIndex(): Promise<{ status: string }> {
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-    const res = await fetch(`${baseUrl.replace(/\/$/, "")}/reset`, {
-        method: "POST"
-    });
-    if (!res.ok) {
-        throw new Error(`Reset failed (${res.status})`);
-    }
-    return res.json();
-}
-
-export async function ingestPdf(file: File, replace: boolean = false): Promise<{ status: string; message?: string; chunks_added?: number }> {
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("replace", String(replace));
-
-    const res = await fetch(`${baseUrl.replace(/\/$/, "")}/ingest_pdf`, {
-        method: "POST",
-        body: formData
-    });
-
-    if (!res.ok) {
-        throw new Error(`PDF ingest failed (${res.status})`);
-    }
-    return res.json();
-}
-
-function normalizeSources(raw: any): Source[] {
-    if (!raw) return [];
-    if (Array.isArray(raw)) {
-        return raw.map((item) => {
-            if (typeof item === "string") return { text: item };
-            if (item?.text) return { text: item.text, source: item.source };
-            return { text: String(item) };
-        });
-    }
-    return [];
 }
