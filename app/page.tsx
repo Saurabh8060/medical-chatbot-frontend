@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import ChatInput from "@/components/ChatInput"
 import ChatMessage from "@/components/ChatMessages"
 import Loader from "@/components/Loader"
@@ -10,6 +10,8 @@ import { Message } from "@/types/chat"
 export default function Home() {
   const [messages, setMessages] = useState<Message[]>([])
   const [loading, setLoading] = useState(false)
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null)
+  const bottomRef = useRef<HTMLDivElement | null>(null)
 
   const suggestedQuestions = [
     "What is acne?",
@@ -56,6 +58,16 @@ export default function Home() {
     }
   }
 
+  useEffect(() => {
+    if (bottomRef.current) {
+      bottomRef.current.scrollIntoView({ behavior: "smooth", block: "end" })
+      return
+    }
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight
+    }
+  }, [messages, loading])
+
   return (
     <div className="h-screen flex flex-col bg-gradient-to-br from-blue-50 via-indigo-50/40 to-purple-50">
       {/* Header */}
@@ -70,7 +82,7 @@ export default function Home() {
             <h1 className="text-lg font-semibold text-gray-900">
               Medical Knowledge Assistant
             </h1>
-            <p className="text-xs text-gray-500">Powered by MedQuAD RAG (FAISS)</p>
+            <p className="text-xs text-gray-500">Powered by MedQuAD RAG (Pinecone)</p>
           </div>
         </div>
         <div className="px-6 pb-3 text-xs text-amber-700">
@@ -79,7 +91,7 @@ export default function Home() {
       </header>
 
       {/* Scrollable Content Area */}
-      <div className="flex-1 overflow-y-auto">
+      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto">
         {/* Welcome Section */}
         {messages.length === 0 && (
           <div className="flex items-center justify-center min-h-full p-6">
@@ -139,6 +151,7 @@ export default function Home() {
                 <ChatMessage key={i} message={m} />
               ))}
               {loading && <Loader />}
+              <div ref={bottomRef} />
             </div>
           </div>
         )}
